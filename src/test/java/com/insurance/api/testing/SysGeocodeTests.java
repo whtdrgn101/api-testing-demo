@@ -22,10 +22,10 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @Slf4j
 @DisplayName("Geocode API Tests")
-@OAuthScopes({"geocode:read", "geocode:write"})
-public class ExampleApiTest extends BaseApiTest {
+@OAuthScopes({"geocode:location:read"})
+public class SysGeocodeTests extends BaseApiTest {
 
-    private final String endpoint = "/geocode/v1/geocode";
+    private final String endpoint = "/dom-geocode-v1/api/location";
 
     @Test
     @DisplayName("Test unauthorized access without token")
@@ -36,7 +36,7 @@ public class ExampleApiTest extends BaseApiTest {
             .baseUri(getConfig().getApiBaseUrl())
             .contentType(io.restassured.http.ContentType.JSON)
             .when()
-            .get(this.endpoint)
+            .get(this.endpoint + "?addressLine1=Main St&state=OH&postalCode=44212&city=BRUNSWICK")
             .then()
             .extract()
             .response();
@@ -50,13 +50,13 @@ public class ExampleApiTest extends BaseApiTest {
 
     @Test
     @DisplayName("Test Authorization Failes with incorrect OAuth scopes")
-    @OAuthScopes({"read", "write"})
+    @OAuthScopes({""})
     public void testAuthorizationFailsWithIncorrectScopes() {
         log.info("Testing authorization fails with incorrect OAuth scopes");
 
         getAuthenticatedRequest()
             .when()
-            .get(this.endpoint)
+            .get(this.endpoint + "?addressLine1=Main St&state=OH&postalCode=44212&city=BRUNSWICK")
             .then()
             .spec(responseSpec)
             .statusCode(403);
@@ -69,12 +69,12 @@ public class ExampleApiTest extends BaseApiTest {
 
         Response response = getAuthenticatedRequest()
             .when()
-            .get(this.endpoint + "?address=1600 Amphitheatre Parkway, Mountain View, CA")
+            .get(this.endpoint + "?addressLine1=Main St&state=OH&postalCode=44212&city=BRUNSWICK")
             .then()
             .spec(responseSpec)
             .statusCode(200)
-            .body("id", notNullValue())
-            .body("name", not(emptyString()))
+            .body("inCity", notNullValue())
+            .body("inState", not(emptyString()))
             .extract()
             .response();
 
@@ -92,14 +92,11 @@ public class ExampleApiTest extends BaseApiTest {
 
         getAuthenticatedRequest()
             .when()
-            .get(this.endpoint)
+            .get("/dom-geocode-v1/actuator/health")
             .then()
             .spec(responseSpec)
             .statusCode(200)
-            .body("id", notNullValue())
-            .body("name", not(emptyString()))
-            .body("createdDate", not(emptyString()))
-            .body("status", anyOf(is("ACTIVE"), is("INACTIVE")));
+            .body("status", notNullValue());
     }
     
 }

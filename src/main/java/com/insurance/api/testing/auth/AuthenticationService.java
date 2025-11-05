@@ -15,7 +15,6 @@ import static io.restassured.RestAssured.given;
 public class AuthenticationService {
     private static AuthenticationService instance;
     private final TestConfig config;
-    private String cachedToken;
     private long tokenExpiryTime;
 
     private AuthenticationService() {
@@ -45,13 +44,7 @@ public class AuthenticationService {
      * @return JWT access token
      */
     public String getAccessToken(String[] scopes) {
-        // Check if we have a valid cached token
-        // Note: In a production system, you might want to cache tokens per scope combination
-        if (cachedToken != null && System.currentTimeMillis() < tokenExpiryTime) {
-            log.debug("Using cached JWT token");
-            return cachedToken;
-        }
-
+       
         log.info("Fetching new JWT token from PING Federate with scopes: {}", 
             scopes != null && scopes.length > 0 ? String.join(", ", scopes) : "none");
 
@@ -107,7 +100,6 @@ public class AuthenticationService {
 
         // Cache the token (assuming 1 hour expiry, adjust based on actual token expiry)
         // In production, you should parse the JWT to get the actual expiry time
-        cachedToken = accessToken;
         tokenExpiryTime = System.currentTimeMillis() + (55 * 60 * 1000); // 55 minutes cache
 
         log.info("Successfully retrieved JWT token");
@@ -119,7 +111,6 @@ public class AuthenticationService {
      */
     public void invalidateToken() {
         log.info("Invalidating cached JWT token");
-        cachedToken = null;
         tokenExpiryTime = 0;
     }
 }
