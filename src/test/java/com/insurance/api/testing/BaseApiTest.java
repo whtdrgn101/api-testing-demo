@@ -1,6 +1,7 @@
 package com.insurance.api.testing;
 
 import com.insurance.api.testing.auth.AuthenticationService;
+import com.insurance.api.testing.auth.BypassTokenCache;
 import com.insurance.api.testing.auth.OAuthScopes;
 import com.insurance.api.testing.config.TestConfig;
 import io.restassured.RestAssured;
@@ -52,8 +53,11 @@ public abstract class BaseApiTest {
         // Check for @OAuthScopes annotation on the test method or class
         String[] scopes = extractScopesFromAnnotation(testInfo);
         
-        // Get JWT token for authentication with scopes
-        String accessToken = authService.getAccessToken(scopes);
+        // Check for @BypassTokenCache annotation on the test method or class
+        boolean bypassCache = shouldBypassCache(testInfo);
+        
+        // Get JWT token for authentication with scopes (with optional cache bypass)
+        String accessToken = authService.getAccessToken(scopes, bypassCache);
 
         // Build request specification with authentication
         RequestSpecBuilder requestSpecBuilder = new RequestSpecBuilder()
@@ -173,6 +177,36 @@ public abstract class BaseApiTest {
             log.debug("Could not retrieve test method from TestInfo: {}", e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * Checks if token cache should be bypassed based on @BypassTokenCache annotation.
+     * Method-level annotations take precedence over class-level annotations.
+     *
+     * @param testInfo JUnit TestInfo containing information about the current test
+     * @return true if cache should be bypassed, false otherwise
+     */
+    private boolean shouldBypassCache(TestInfo testInfo) {
+        // First, try to find the current test method using TestInfo
+        Method testMethod = findTestMethod(testInfo);
+        
+        // Check method-level annotation first (takes precedence)
+        if (testMethod != null) {
+            BypassTokenCache methodAnnotation = testMethod.getAnnotation(BypassTokenCache.class);
+            if (methodAnnotation != null) {
+                log.debug("Found @BypassTokenCache annotation on method {}", testMethod.getName());
+                return true;
+            }
+        }
+        
+        // Fall back to class-level annotation
+        BypassTokenCache classAnnotation = this.getClass().getAnnotation(BypassTokenCache.class);
+        if (classAnnotation != null) {
+            log.debug("Found @BypassTokenCache annotation on class {}", this.getClass().getSimpleName());
+            return true;
+        }
+        
+        return false;
     }
 }
 
