@@ -208,11 +208,28 @@ This is a proprietary testing framework for internal use.
 
 ## Support
 
-For issues or questions, contact the Quality Engineering team.
-
-# api-testing-demo
-
-# Example Usage for Java
+## pom.xml needs
+```
+<dependency>
+    <groupId>com.insurance.api</groupId>
+    <artifactId>rest-api-testing</artifactId>
+    <version>1.0.0</version>
+    <scope>test</scope>
+</dependency>
+<dependency>
+    <groupId>org.junit.jupiter</groupId>
+    <artifactId>junit-jupiter-api</artifactId>
+    <version>5.10.1</version>
+    <scope>test</scope>
+</dependency>
+<dependency>
+    <groupId>io.rest-assured</groupId>
+    <artifactId>rest-assured</artifactId>
+    <version>5.4.0</version>
+    <scope>test</scope>
+</dependency>
+```
+## Example Usage for Java
 ```
 package com.insurance.api.testing;
 
