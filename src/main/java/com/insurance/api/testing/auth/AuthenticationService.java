@@ -38,13 +38,25 @@ public class AuthenticationService {
      * @return JWT access token
      */
     public String getAccessToken() {
+        return getAccessToken(new String[0]);
+    }
+
+    /**
+     * Retrieves a JWT token from PING Federate using client credentials with specified scopes
+     *
+     * @param scopes OAuth scopes to include in the token request
+     * @return JWT access token
+     */
+    public String getAccessToken(String[] scopes) {
         // Check if we have a valid cached token
+        // Note: In a production system, you might want to cache tokens per scope combination
         if (cachedToken != null && System.currentTimeMillis() < tokenExpiryTime) {
             log.debug("Using cached JWT token");
             return cachedToken;
         }
 
-        log.info("Fetching new JWT token from PING Federate");
+        log.info("Fetching new JWT token from PING Federate with scopes: {}", 
+            scopes != null && scopes.length > 0 ? String.join(", ", scopes) : "none");
 
         String baseUrl = config.getPingFederateBaseUrl();
         String tokenEndpoint = config.getPingFederateTokenEndpoint();
@@ -65,6 +77,13 @@ public class AuthenticationService {
         formParams.put("grant_type", grantType);
         formParams.put("client_id", clientId);
         formParams.put("client_secret", clientSecret);
+        
+        // Add scopes if provided
+        if (scopes != null && scopes.length > 0) {
+            String scopeString = String.join(" ", scopes);
+            formParams.put("scope", scopeString);
+            log.debug("Including scopes in token request: {}", scopeString);
+        }
 
         Response response = given()
             .baseUri(baseUrl)

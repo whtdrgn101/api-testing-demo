@@ -1,6 +1,7 @@
 package com.insurance.api.testing;
 
 import com.insurance.api.testing.auth.AuthenticationService;
+import com.insurance.api.testing.auth.OAuthScopes;
 import com.insurance.api.testing.config.TestConfig;
 import io.restassured.RestAssured;
 import io.restassured.builder.RequestSpecBuilder;
@@ -46,8 +47,11 @@ public abstract class BaseApiTest {
     public void setUpTest() {
         log.info("Setting up test: {}", this.getClass().getSimpleName());
 
-        // Get JWT token for authentication
-        String accessToken = authService.getAccessToken();
+        // Check for @OAuthScopes annotation on the test class
+        String[] scopes = extractScopesFromAnnotation();
+        
+        // Get JWT token for authentication with scopes
+        String accessToken = authService.getAccessToken(scopes);
 
         // Build request specification with authentication
         RequestSpecBuilder requestSpecBuilder = new RequestSpecBuilder()
@@ -108,6 +112,26 @@ public abstract class BaseApiTest {
      */
     protected static TestConfig getConfig() {
         return config;
+    }
+
+    /**
+     * Extracts OAuth scopes from the @OAuthScopes annotation on the test class
+     *
+     * @return array of scope strings, or empty array if no annotation is present
+     */
+    private String[] extractScopesFromAnnotation() {
+        OAuthScopes annotation = this.getClass().getAnnotation(OAuthScopes.class);
+        if (annotation != null) {
+            String[] scopes = annotation.value();
+            if (scopes != null && scopes.length > 0) {
+                log.debug("Found @OAuthScopes annotation with {} scope(s) on {}", 
+                    scopes.length, this.getClass().getSimpleName());
+                return scopes;
+            }
+        }
+        log.debug("No @OAuthScopes annotation found on {}, using default (no scopes)", 
+            this.getClass().getSimpleName());
+        return new String[0];
     }
 }
 

@@ -1,5 +1,6 @@
 package com.insurance.api.testing;
 
+import com.insurance.api.testing.auth.OAuthScopes;
 import io.restassured.response.Response;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
@@ -13,9 +14,14 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Example API test class demonstrating the testing pattern
  * Replace this with your actual API endpoint tests
+ * 
+ * This example demonstrates the use of @OAuthScopes annotation to specify
+ * OAuth scopes for token requests. The scopes "read" and "write" will be
+ * included in the token request when this test class runs.
  */
 @Slf4j
 @DisplayName("Example API Tests")
+@OAuthScopes({"read", "write"})
 public class ExampleApiTest extends BaseApiTest {
 
     @Test
