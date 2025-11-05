@@ -13,7 +13,9 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
 
+import java.lang.reflect.Method;
 import java.time.Duration;
 
 import static org.hamcrest.Matchers.lessThan;
@@ -44,11 +46,11 @@ public abstract class BaseApiTest {
     }
 
     @BeforeEach
-    public void setUpTest() {
+    public void setUpTest(TestInfo testInfo) {
         log.info("Setting up test: {}", this.getClass().getSimpleName());
 
-        // Check for @OAuthScopes annotation on the test class
-        String[] scopes = extractScopesFromAnnotation();
+        // Check for @OAuthScopes annotation on the test method or class
+        String[] scopes = extractScopesFromAnnotation(testInfo);
         
         // Get JWT token for authentication with scopes
         String accessToken = authService.getAccessToken(scopes);
@@ -115,23 +117,62 @@ public abstract class BaseApiTest {
     }
 
     /**
-     * Extracts OAuth scopes from the @OAuthScopes annotation on the test class
+     * Extracts OAuth scopes from the @OAuthScopes annotation.
+     * First checks the test method annotation, then falls back to class-level annotation.
+     * Method-level annotations take precedence over class-level annotations.
      *
+     * @param testInfo JUnit TestInfo containing information about the current test
      * @return array of scope strings, or empty array if no annotation is present
      */
-    private String[] extractScopesFromAnnotation() {
-        OAuthScopes annotation = this.getClass().getAnnotation(OAuthScopes.class);
-        if (annotation != null) {
-            String[] scopes = annotation.value();
+    private String[] extractScopesFromAnnotation(TestInfo testInfo) {
+        // First, try to find the current test method using TestInfo
+        Method testMethod = findTestMethod(testInfo);
+        
+        // Check method-level annotation first (takes precedence)
+        if (testMethod != null) {
+            OAuthScopes methodAnnotation = testMethod.getAnnotation(OAuthScopes.class);
+            if (methodAnnotation != null) {
+                String[] scopes = methodAnnotation.value();
+                if (scopes != null && scopes.length > 0) {
+                    log.debug("Found @OAuthScopes annotation with {} scope(s) on method {}", 
+                        scopes.length, testMethod.getName());
+                    return scopes;
+                }
+            }
+        }
+        
+        // Fall back to class-level annotation
+        OAuthScopes classAnnotation = this.getClass().getAnnotation(OAuthScopes.class);
+        if (classAnnotation != null) {
+            String[] scopes = classAnnotation.value();
             if (scopes != null && scopes.length > 0) {
-                log.debug("Found @OAuthScopes annotation with {} scope(s) on {}", 
+                log.debug("Found @OAuthScopes annotation with {} scope(s) on class {}", 
                     scopes.length, this.getClass().getSimpleName());
                 return scopes;
             }
         }
-        log.debug("No @OAuthScopes annotation found on {}, using default (no scopes)", 
-            this.getClass().getSimpleName());
+        
+        log.debug("No @OAuthScopes annotation found, using default (no scopes)");
         return new String[0];
+    }
+
+    /**
+     * Finds the current test method using JUnit's TestInfo.
+     *
+     * @param testInfo JUnit TestInfo containing test method information
+     * @return the test method, or null if not found
+     */
+    private Method findTestMethod(TestInfo testInfo) {
+        if (testInfo == null || testInfo.getTestMethod().isEmpty()) {
+            return null;
+        }
+        
+        try {
+            return testInfo.getTestMethod().get();
+        } catch (Exception e) {
+            log.debug("Could not retrieve test method from TestInfo: {}", e.getMessage());
+            return null;
+        }
     }
 }
 
