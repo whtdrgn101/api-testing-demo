@@ -5,8 +5,6 @@ import io.restassured.response.Response;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
-
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -20,19 +18,20 @@ import static org.junit.jupiter.api.Assertions.*;
  * included in the token request when this test class runs.
  */
 @Slf4j
-@DisplayName("Example API Tests")
-@OAuthScopes({"read", "write"})
+@DisplayName("Geocode API Tests")
+@OAuthScopes({"geocode:read"})
 public class ExampleApiTest extends BaseApiTest {
+
+    private final String endpoint = "/geocode/v1/geocode";
 
     @Test
     @DisplayName("Test GET endpoint - Example")
-    @EnabledIfSystemProperty(named = "run.example.tests", matches = "true")
     public void testGetEndpoint() {
         log.info("Executing GET endpoint test");
 
         Response response = getAuthenticatedRequest()
             .when()
-            .get("/example/endpoint")
+            .get(this.endpoint + "?address=1600 Amphitheatre Parkway, Mountain View, CA")
             .then()
             .spec(responseSpec)
             .statusCode(200)
@@ -48,36 +47,6 @@ public class ExampleApiTest extends BaseApiTest {
         assertEquals(200, response.getStatusCode());
     }
 
-    @Test
-    @DisplayName("Test POST endpoint - Example")
-    @EnabledIfSystemProperty(named = "run.example.tests", matches = "true")
-    public void testPostEndpoint() {
-        log.info("Executing POST endpoint test");
-
-        String requestBody = """
-            {
-                "name": "Test Name",
-                "description": "Test Description"
-            }
-            """;
-
-        Response response = getAuthenticatedRequest()
-            .body(requestBody)
-            .when()
-            .post("/example/endpoint")
-            .then()
-            .spec(responseSpec)
-            .statusCode(201)
-            .body("id", notNullValue())
-            .extract()
-            .response();
-
-        log.info("Response status: {}", response.getStatusCode());
-        log.info("Response body: {}", response.getBody().asString());
-
-        assertNotNull(response);
-        assertEquals(201, response.getStatusCode());
-    }
 
     @Test
     @DisplayName("Test unauthorized access without token")
@@ -88,7 +57,7 @@ public class ExampleApiTest extends BaseApiTest {
             .baseUri(getConfig().getApiBaseUrl())
             .contentType(io.restassured.http.ContentType.JSON)
             .when()
-            .get("/example/endpoint")
+            .get(this.endpoint)
             .then()
             .extract()
             .response();
@@ -101,14 +70,13 @@ public class ExampleApiTest extends BaseApiTest {
     }
 
     @Test
-    @DisplayName("Test endpoint validation")
-    @EnabledIfSystemProperty(named = "run.example.tests", matches = "true")
+    @DisplayName("Test healthcheck endpoint validation")
     public void testEndpointValidation() {
         log.info("Testing endpoint response validation");
 
         getAuthenticatedRequest()
             .when()
-            .get("/example/endpoint")
+            .get(this.endpoint)
             .then()
             .spec(responseSpec)
             .statusCode(200)
