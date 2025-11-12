@@ -31,13 +31,17 @@ rest-api-testing/
 │   │   │       │   └── AuthenticationService.java
 │   │   │       └── config/
 │   │   │           └── TestConfig.java
+│   |   |       └── BaseApiTest.java
 │   │   └── resources/
 │   │       └── application.properties
 │   └── test/
 │       └── java/
 │           └── com/insurance/api/testing/
-│               ├── BaseApiTest.java
-│               └── ExampleApiTest.java
+│               └── auth/
+│               |   └── AuthenticationServiceTest.java
+│               |   └── BypassTokenCacheTest.java
+│               |   └── OAuthScopesTest.java
+│               └── BaseApiTestAnnotationTests.java
 ├── pom.xml
 └── README.md
 ```
