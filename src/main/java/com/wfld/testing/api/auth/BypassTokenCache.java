@@ -1,4 +1,4 @@
-package com.insurance.api.testing.auth;
+package com.wfld.testing.api.auth;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

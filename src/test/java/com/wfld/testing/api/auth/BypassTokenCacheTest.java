@@ -1,4 +1,4 @@
-package com.insurance.api.testing.auth;
+package com.wfld.testing.api.auth;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

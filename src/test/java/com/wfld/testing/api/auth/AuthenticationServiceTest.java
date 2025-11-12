@@ -1,6 +1,6 @@
-package com.insurance.api.testing.auth;
+package com.wfld.testing.api.auth;
 
-import com.insurance.api.testing.config.TestConfig;
+import com.wfld.testing.api.config.TestConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

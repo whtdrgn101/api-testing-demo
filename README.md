@@ -215,7 +215,7 @@ This is a proprietary testing framework for internal use.
 ## pom.xml needs
 ```
 <dependency>
-    <groupId>com.insurance.api</groupId>
+    <groupId>com.wfld.testing</groupId>
     <artifactId>rest-api-testing</artifactId>
     <version>1.0.0</version>
     <scope>test</scope>
@@ -235,9 +235,9 @@ This is a proprietary testing framework for internal use.
 ```
 ## Example Usage for Java
 ```
-package com.insurance.api.testing;
+package com.wfld.testing.api;
 
-import com.insurance.api.testing.auth.OAuthScopes;
+import com.wfld.testing.api.auth.OAuthScopes;
 import io.restassured.response.Response;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;

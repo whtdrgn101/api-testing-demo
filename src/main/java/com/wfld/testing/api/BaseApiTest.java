@@ -1,9 +1,9 @@
-package com.insurance.api.testing;
+package com.wfld.testing.api;
 
-import com.insurance.api.testing.auth.AuthenticationService;
-import com.insurance.api.testing.auth.BypassTokenCache;
-import com.insurance.api.testing.auth.OAuthScopes;
-import com.insurance.api.testing.config.TestConfig;
+import com.wfld.testing.api.auth.AuthenticationService;
+import com.wfld.testing.api.auth.BypassTokenCache;
+import com.wfld.testing.api.auth.OAuthScopes;
+import com.wfld.testing.api.config.TestConfig;
 import io.restassured.RestAssured;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.builder.ResponseSpecBuilder;

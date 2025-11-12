@@ -1,6 +1,6 @@
-package com.insurance.api.testing.auth;
+package com.wfld.testing.api.auth;
 
-import com.insurance.api.testing.config.TestConfig;
+import com.wfld.testing.api.config.TestConfig;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import lombok.extern.slf4j.Slf4j;

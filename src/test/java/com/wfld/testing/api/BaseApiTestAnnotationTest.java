@@ -1,7 +1,7 @@
-package com.insurance.api.testing;
+package com.wfld.testing.api;
 
-import com.insurance.api.testing.auth.BypassTokenCache;
-import com.insurance.api.testing.auth.OAuthScopes;
+import com.wfld.testing.api.auth.BypassTokenCache;
+import com.wfld.testing.api.auth.OAuthScopes;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
