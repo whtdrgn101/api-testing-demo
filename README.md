@@ -26,7 +26,7 @@ rest-api-testing/
 ├── src/
 │   ├── main/
 │   │   ├── java/
-│   │   │   └── com/insurance/api/testing/
+│   │   │   └── com/wfld/testing/api
 │   │   │       ├── auth/
 │   │   │       │   └── AuthenticationService.java
 │   │   │       └── config/
@@ -36,7 +36,7 @@ rest-api-testing/
 │   │       └── application.properties
 │   └── test/
 │       └── java/
-│           └── com/insurance/api/testing/
+│           └── com/wfld/testing/api
 │               └── auth/
 │               |   └── AuthenticationServiceTest.java
 │               |   └── BypassTokenCacheTest.java
@@ -234,7 +234,7 @@ This is a proprietary testing framework for internal use.
 </dependency>
 ```
 ## Example Usage for Java
-```
+```Java
 package com.wfld.testing.api;
 
 import com.wfld.testing.api.auth.OAuthScopes;
