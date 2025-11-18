@@ -222,8 +222,8 @@ public class PlaywrightApiRequest {
                 return this; // Unreachable, but satisfies static analysis
             }
 
-            // Assert json is not null for static analysis
-            assert json != null : "JSON response should not be null after null check";
+            // Explicit null check for static analysis
+            Objects.requireNonNull(json, "JSON response must not be null");
             
             JsonNode node = json.at(jsonPath.startsWith("/") ? jsonPath : "/" + jsonPath);
             if (node == null || node.isMissingNode()) {
