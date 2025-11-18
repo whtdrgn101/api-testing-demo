@@ -1,55 +1,18 @@
 package com.wfld.testing.api.playwright;
 
-/**
- * EXAMPLE/REFERENCE CODE - NOT COMPILED
- * 
- * This file demonstrates how to create a fluent API wrapper for Playwright
- * that provides REST-assured-like syntax. This file is excluded from compilation
- * because Playwright is not a dependency of this project.
- * 
- * To use this code:
- * 1. Add Playwright dependency to pom.xml:
- *    <dependency>
- *        <groupId>com.microsoft.playwright</groupId>
- *        <artifactId>playwright</artifactId>
- *        <version>1.40.0</version>
- *    </dependency>
- * 2. Remove the excludes from maven-compiler-plugin in pom.xml
- * 
- * See PLAYWRIGHT_FLUENT_API.md for usage examples.
- */
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.playwright.APIRequestContext;
 import com.microsoft.playwright.APIResponse;
 import com.microsoft.playwright.options.RequestOptions;
 import lombok.extern.slf4j.Slf4j;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
-
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Fluent API wrapper for Playwright API testing, similar to REST-assured.
- * Provides a fluent DSL for making HTTP requests and validating responses.
- * 
- * Example usage:
- * <pre>
- * PlaywrightApiRequest request = new PlaywrightApiRequest(apiRequestContext);
- * 
- * request
- *     .get("/users/123")
- *     .then()
- *     .statusCode(200)
- *     .body("firstName", equalTo("John"))
- *     .extract()
- *     .response();
- * </pre>
- */
 @Slf4j
 public class PlaywrightApiRequest {
     private final APIRequestContext context;
@@ -223,7 +186,10 @@ public class PlaywrightApiRequest {
     JsonNode getJsonResponse() {
         if (jsonResponse == null && response != null) {
             try {
-                jsonResponse = objectMapper.readTree(response.text());
+                String responseText = response.text();
+                if (responseText != null && !responseText.trim().isEmpty()) {
+                    jsonResponse = objectMapper.readTree(responseText);
+                }
             } catch (Exception e) {
                 throw new RuntimeException("Failed to parse JSON response", e);
             }
@@ -251,13 +217,18 @@ public class PlaywrightApiRequest {
 
         public ResponseValidator body(String jsonPath, Object expectedValue) {
             JsonNode json = request.getJsonResponse();
-            if (json == null) {
+            if (json == null || json.isMissingNode()) {
                 fail("Response is not JSON or could not be parsed");
+                return this; // Unreachable, but satisfies static analysis
             }
 
+            // Assert json is not null for static analysis
+            assert json != null : "JSON response should not be null after null check";
+            
             JsonNode node = json.at(jsonPath.startsWith("/") ? jsonPath : "/" + jsonPath);
             if (node == null || node.isMissingNode()) {
                 fail("JSON path '" + jsonPath + "' not found in response");
+                return this; // Unreachable, but satisfies static analysis
             }
 
             Object actualValue = getNodeValue(node);
@@ -278,8 +249,9 @@ public class PlaywrightApiRequest {
 
         public ResponseValidator body(String jsonPath, Consumer<JsonNode> validator) {
             JsonNode json = request.getJsonResponse();
-            if (json == null) {
+            if (json == null || json.isMissingNode()) {
                 fail("Response is not JSON or could not be parsed");
+                return this; // Unreachable, but satisfies static analysis
             }
 
             JsonNode node = json.at(jsonPath.startsWith("/") ? jsonPath : "/" + jsonPath);
