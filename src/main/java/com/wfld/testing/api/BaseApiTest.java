@@ -4,6 +4,7 @@ import com.wfld.testing.api.auth.AuthenticationService;
 import com.wfld.testing.api.auth.BypassTokenCache;
 import com.wfld.testing.api.auth.OAuthScopes;
 import com.wfld.testing.api.config.TestConfig;
+import com.wfld.testing.api.template.TemplateService;
 import io.restassured.RestAssured;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.builder.ResponseSpecBuilder;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.TestInfo;
 
 import java.lang.reflect.Method;
 import java.time.Duration;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.lessThan;
 
@@ -30,6 +32,7 @@ import static org.hamcrest.Matchers.lessThan;
 public abstract class BaseApiTest {
     protected static TestConfig config;
     protected static AuthenticationService authService;
+    protected static TemplateService templateService;
     protected RequestSpecification requestSpec;
     protected ResponseSpecification responseSpec;
 
@@ -38,6 +41,7 @@ public abstract class BaseApiTest {
         log.info("Initializing test suite configuration");
         config = TestConfig.getInstance();
         authService = AuthenticationService.getInstance();
+        templateService = TemplateService.getInstance();
 
         // Configure REST-assured defaults
         RestAssured.baseURI = config.getApiBaseUrl();
@@ -118,6 +122,71 @@ public abstract class BaseApiTest {
      */
     protected static TestConfig getConfig() {
         return config;
+    }
+
+    /**
+     * Renders a Velocity template with the provided context variables.
+     * Templates are loaded from the classpath (typically src/main/resources or src/test/resources).
+     * This is a convenience method that uses the shared TemplateService instance.
+     *
+     * @param templatePath path to the template file (e.g., "templates/user-create.json.vm")
+     * @param context      map of variables to use in the template
+     * @return rendered template as a string (typically JSON)
+     */
+    protected String renderTemplate(String templatePath, Map<String, Object> context) {
+        return templateService.render(templatePath, context);
+    }
+
+    /**
+     * Renders a Velocity template with the provided context variables.
+     * Convenience method that accepts varargs for simple key-value pairs.
+     *
+     * @param templatePath path to the template file
+     * @param context      varargs of key-value pairs (must be even number of arguments)
+     * @return rendered template as a string (typically JSON)
+     */
+    protected String renderTemplate(String templatePath, Object... context) {
+        return templateService.render(templatePath, context);
+    }
+
+    /**
+     * Renders a Velocity template using data loaded from a JSON file.
+     * The JSON file is loaded from the classpath, parsed, and used as context for the main template.
+     * 
+     * This is useful when you want to:
+     * - Store test data in JSON files with arrays of values
+     * - Reuse test data across multiple templates
+     * - Separate test data from template structure
+     *
+     * @param templatePath     path to the main template file (e.g., "templates/user-create.json.vm")
+     * @param dataFilePath     path to the JSON data file (e.g., "templates/user-data.json")
+     * @param additionalContext optional map of additional variables to merge with the JSON data (takes precedence)
+     * @return rendered main template as a string (typically JSON)
+     */
+    protected String renderTemplate(String templatePath, String dataFilePath, Map<String, Object> additionalContext) {
+        return templateService.render(templatePath, dataFilePath, additionalContext);
+    }
+
+    /**
+     * Renders a Velocity template using data loaded from a JSON file.
+     * Convenience method that accepts varargs for additional context variables.
+     *
+     * @param templatePath     path to the main template file
+     * @param dataFilePath     path to the JSON data file
+     * @param additionalContext varargs of key-value pairs to merge with JSON data (must be even number of arguments)
+     * @return rendered main template as a string (typically JSON)
+     */
+    protected String renderTemplate(String templatePath, String dataFilePath, Object... additionalContext) {
+        return templateService.render(templatePath, dataFilePath, additionalContext);
+    }
+
+    /**
+     * Get the TemplateService instance for advanced template operations.
+     *
+     * @return TemplateService instance
+     */
+    protected static TemplateService getTemplateService() {
+        return templateService;
     }
 
     /**

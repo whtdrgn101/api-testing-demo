@@ -1,0 +1,16 @@
+{
+  "name": "$name",
+  "description": "$description",
+  "price": $price,
+  "category": "$category",
+  "inStock": $inStock,
+#if($tags && $tags.size() > 0)
+  "tags": [
+#foreach($tag in $tags)
+    "$tag"#if($foreach.hasNext),#end
+#end
+  ],
+#end
+  "sku": "$sku"
+}
+

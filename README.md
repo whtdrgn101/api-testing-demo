@@ -156,6 +156,187 @@ protected void customizeResponseSpec(ResponseSpecBuilder responseSpecBuilder) {
 }
 ```
 
+### Generating JSON Request Bodies with Velocity Templates
+
+The framework includes a `TemplateService` for generating JSON request bodies from Velocity templates. This is useful for creating dynamic request payloads for POST and PUT requests.
+
+#### Creating Templates
+
+Create Velocity template files (`.vm` extension) in `src/main/resources/templates/` or `src/test/resources/templates/`:
+
+**Example: `templates/user-create.json.vm`**
+```json
+{
+  "firstName": "$firstName",
+  "lastName": "$lastName",
+  "email": "$email",
+  "age": $age
+#if($phoneNumber)
+  ,"phoneNumber": "$phoneNumber"
+#end
+}
+```
+
+#### Using Templates in Tests
+
+**Method 1: Using Map context**
+```java
+@Test
+public void testCreateUser() {
+    Map<String, Object> context = new HashMap<>();
+    context.put("firstName", "John");
+    context.put("lastName", "Doe");
+    context.put("email", "john.doe@example.com");
+    context.put("age", 30);
+    context.put("phoneNumber", "555-1234");
+    
+    String jsonBody = renderTemplate("templates/user-create.json.vm", context);
+    
+    Response response = getAuthenticatedRequest()
+        .body(jsonBody)
+        .when()
+        .post("/users")
+        .then()
+        .spec(responseSpec)
+        .statusCode(201)
+        .extract()
+        .response();
+}
+```
+
+**Method 2: Using varargs (convenient for simple cases)**
+```java
+@Test
+public void testCreateUser() {
+    String jsonBody = renderTemplate("templates/user-create.json.vm",
+        "firstName", "John",
+        "lastName", "Doe",
+        "email", "john.doe@example.com",
+        "age", 30,
+        "phoneNumber", "555-1234");
+    
+    Response response = getAuthenticatedRequest()
+        .body(jsonBody)
+        .when()
+        .post("/users")
+        .then()
+        .spec(responseSpec)
+        .statusCode(201)
+        .extract()
+        .response();
+}
+```
+
+#### Velocity Template Features
+
+The templates support all Velocity template language features:
+
+- **Variables**: `$variableName`
+- **Conditionals**: `#if($condition) ... #end`
+- **Loops**: `#foreach($item in $list) ... #end`
+- **Complex objects**: Access nested properties
+
+**Example with list:**
+```json
+{
+  "name": "$productName",
+  "tags": [
+#foreach($tag in $tags)
+    "$tag"#if($foreach.hasNext),#end
+#end
+  ]
+}
+```
+
+#### Template Caching
+
+Templates are automatically cached after first load for better performance. To clear the cache (useful in tests):
+
+```java
+getTemplateService().clearCache(); // Clear all templates
+getTemplateService().clearCache("templates/user-create.json.vm"); // Clear specific template
+```
+
+#### Using JSON Data Files
+
+You can load test data from JSON files to use as context for your templates. This is useful for:
+- Storing test data in JSON files with arrays of values
+- Reusing test data across multiple templates
+- Separating test data from template structure
+
+**Example: Data file (`templates/user-data.json`)**
+```json
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "john.doe@example.com",
+  "age": 30,
+  "phoneNumber": "555-1234",
+  "address": {
+    "street": "123 Main St",
+    "city": "Anytown",
+    "state": "CA",
+    "zipCode": "12345"
+  },
+  "tags": ["customer", "premium", "active"]
+}
+```
+
+**Usage in test:**
+```java
+@Test
+public void testCreateUserWithDataFile() {
+    // Load data from JSON file and use it as context for the template
+    String jsonBody = renderTemplate(
+        "templates/user-create.json.vm",  // Main template
+        "templates/user-data.json"         // JSON data file
+    );
+    
+    Response response = getAuthenticatedRequest()
+        .body(jsonBody)
+        .when()
+        .post("/users")
+        .then()
+        .spec(responseSpec)
+        .statusCode(201)
+        .extract()
+        .response();
+}
+```
+
+**With additional context to override values:**
+```java
+@Test
+public void testCreateUserWithOverrides() {
+    // Load data from JSON file, but override specific values
+    String jsonBody = renderTemplate(
+        "templates/user-create.json.vm",
+        "templates/user-data.json",
+        "firstName", "Jane",  // Override firstName from JSON file
+        "age", 25              // Override age from JSON file
+    );
+    
+    Response response = getAuthenticatedRequest()
+        .body(jsonBody)
+        .when()
+        .post("/users")
+        .then()
+        .extract()
+        .response();
+}
+```
+
+The JSON file is loaded from the classpath, parsed, and merged with any additional context (additional context takes precedence over JSON file values).
+
+#### Advanced Usage
+
+For advanced template operations, access the `TemplateService` directly:
+
+```java
+TemplateService templateService = getTemplateService();
+String json = templateService.render("templates/complex.json.vm", context);
+```
+
 ## Example Test
 
 See `ExampleApiTest.java` for complete examples including:
@@ -170,6 +351,7 @@ See `ExampleApiTest.java` for complete examples including:
 - **JUnit 5.10.1** - Testing framework
 - **Lombok 1.18.30** - Code generation
 - **Jackson 2.16.1** - JSON processing
+- **Apache Velocity 2.3** - Template engine for JSON generation
 - **SLF4J 2.0.9** - Logging
 
 ## Troubleshooting
@@ -194,6 +376,15 @@ See `ExampleApiTest.java` for complete examples including:
 2. Check property names match exactly (case-sensitive)
 3. Use environment variables as alternative
 
+### Template Not Found or Rendering Fails
+
+1. Verify template file exists in `src/main/resources/templates/` or `src/test/resources/templates/`
+2. Check template path is correct (case-sensitive)
+3. Ensure template file has `.vm` extension
+4. Verify all required variables are provided in context
+5. Check template syntax (Velocity syntax errors will cause rendering to fail)
+6. Review logs for detailed error messages
+
 ## Best Practices
 
 1. **Token Management**: The framework caches tokens automatically. Use `authService.invalidateToken()` if you need to force token refresh.
@@ -205,6 +396,10 @@ See `ExampleApiTest.java` for complete examples including:
 4. **Logging**: Use the provided SLF4J logging for debugging test execution.
 
 5. **Configuration**: Prefer environment variables for sensitive data (client secrets) over properties files.
+
+6. **Template Organization**: Organize templates by domain or feature (e.g., `templates/users/`, `templates/products/`).
+
+7. **Template Reusability**: Create base templates for common structures and use includes or composition for variations.
 
 ## License
 

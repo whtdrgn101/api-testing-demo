@@ -1,0 +1,17 @@
+{
+  "id": "$userId",
+#if($firstName)
+  "firstName": "$firstName",
+#end
+#if($lastName)
+  "lastName": "$lastName",
+#end
+#if($email)
+  "email": "$email",
+#end
+#if($age)
+  "age": $age,
+#end
+  "updatedAt": "$updatedAt"
+}
+

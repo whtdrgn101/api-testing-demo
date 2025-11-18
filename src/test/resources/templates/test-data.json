@@ -1,0 +1,11 @@
+{
+  "name": "Test Product",
+  "value": 99,
+  "computed": "Test Product-99",
+  "items": ["item1", "item2", "item3"],
+  "metadata": {
+    "category": "test",
+    "active": true
+  }
+}
+

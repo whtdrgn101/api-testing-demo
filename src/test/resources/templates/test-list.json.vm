@@ -1,0 +1,8 @@
+{
+  "items": [
+#foreach($item in $items)
+    "$item"#if($foreach.hasNext),#end
+#end
+  ]
+}
+

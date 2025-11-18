@@ -1,0 +1,8 @@
+{
+  "id": "$id",
+#if($optional)
+  "optional": "$optional",
+#end
+  "required": "$required"
+}
+
