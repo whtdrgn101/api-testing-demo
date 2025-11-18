@@ -20,12 +20,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
-
 import java.lang.reflect.Method;
 import java.util.Map;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * EXAMPLE/REFERENCE CODE - NOT COMPILED
@@ -293,31 +290,3 @@ public abstract class BaseApiTestPlaywrightExample {
         return false;
     }
 }
-
-/**
- * Example test class using Playwright version:
- * 
- * public class UserApiTest extends BaseApiTestPlaywrightExample {
- *     
- *     @Test
- *     public void testGetUser() {
- *         APIResponse response = get("/users/123");
- *         assertStatus(response, 200);
- *         assertJsonField(response, "/firstName", "John");
- *     }
- *     
- *     @Test
- *     public void testCreateUser() {
- *         String jsonBody = renderTemplate("templates/user-create.json.vm",
- *             "firstName", "John",
- *             "lastName", "Doe");
- *         
- *         APIResponse response = post("/users", jsonBody);
- *         assertStatus(response, 201);
- *         
- *         JsonNode json = parseJsonResponse(response);
- *         assertNotNull(json.get("id"));
- *     }
- * }
- */
-
