@@ -40,6 +40,7 @@ public abstract class BaseApiTest {
     protected static Playwright playwright;
     protected static ObjectMapper objectMapper = new ObjectMapper();
     protected APIRequestContext apiRequestContext;
+    protected APIRequestContext unauthenticatedApiRequestContext;
 
     @BeforeAll
     public static void setUpTestSuite() {
@@ -88,6 +89,9 @@ public abstract class BaseApiTest {
         if (apiRequestContext != null) {
             apiRequestContext.dispose();
         }
+        if (unauthenticatedApiRequestContext != null) {
+            unauthenticatedApiRequestContext.dispose();
+        }
     }
 
     @AfterAll
@@ -117,11 +121,44 @@ public abstract class BaseApiTest {
 
     /**
      * Helper method to get a fluent API request builder (REST-assured-like syntax)
+     * Uses the authenticated API request context with JWT token.
      *
      * @return PlaywrightApiRequest builder for fluent API calls
      */
-    protected PlaywrightApiRequest request() {
+    protected PlaywrightApiRequest authenticatedRequest() {
         return new PlaywrightApiRequest(apiRequestContext);
+    }
+
+    /**
+     * @deprecated Use {@link #authenticatedRequest()} instead for clarity.
+     * This method is kept for backward compatibility but will be removed in a future version.
+     */
+    @Deprecated
+    protected PlaywrightApiRequest request() {
+        return authenticatedRequest();
+    }
+
+    /**
+     * Helper method to get a fluent API request builder without authentication.
+     * Creates an unauthenticated API request context (lazily) that does not include
+     * the Authorization header. Useful for testing unauthorized access scenarios.
+     *
+     * @return PlaywrightApiRequest builder for unauthenticated API calls
+     */
+    protected PlaywrightApiRequest unauthenticatedRequest() {
+        if (unauthenticatedApiRequestContext == null) {
+            // Create API request context without authentication
+            APIRequest.NewContextOptions contextOptions = new APIRequest.NewContextOptions()
+                .setBaseURL(config.getApiBaseUrl())
+                .setExtraHTTPHeaders(Map.of(
+                    "Content-Type", "application/json"
+                ))
+                .setTimeout(config.getTestTimeout())
+                .setIgnoreHTTPSErrors(true); // Use only in test environments
+
+            unauthenticatedApiRequestContext = playwright.request().newContext(contextOptions);
+        }
+        return new PlaywrightApiRequest(unauthenticatedApiRequestContext);
     }
 
     /**

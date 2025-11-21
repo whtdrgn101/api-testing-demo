@@ -215,6 +215,29 @@ public class PlaywrightApiRequest {
             return this;
         }
 
+        /**
+         * Validates that the response status code matches one of the expected status codes.
+         * Useful for cases where multiple status codes are acceptable (e.g., 401 or 403 for unauthorized).
+         *
+         * @param expectedStatuses one or more expected status codes
+         * @return this ResponseValidator for method chaining
+         */
+        public ResponseValidator statusCode(int... expectedStatuses) {
+            APIResponse response = request.getResponse();
+            int actualStatus = response.status();
+            
+            for (int expectedStatus : expectedStatuses) {
+                if (actualStatus == expectedStatus) {
+                    return this; // Status matches one of the expected values
+                }
+            }
+            
+            // None of the expected statuses matched
+            fail(String.format("Expected status code to be one of %s but got %d. Response: %s",
+                java.util.Arrays.toString(expectedStatuses), actualStatus, response.text()));
+            return this; // Unreachable, but satisfies static analysis
+        }
+
         public ResponseValidator body(String jsonPath, Object expectedValue) {
             JsonNode json = request.getJsonResponse();
             if (json == null || json.isMissingNode()) {

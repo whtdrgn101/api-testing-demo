@@ -121,15 +121,23 @@ public class MyApiTest extends BaseApiTest {
 }
 ```
 
-2. Use `request()` for fluent API calls or direct methods:
+2. Use `authenticatedRequest()` for authenticated API calls or `unauthenticatedRequest()` for unauthenticated calls:
 ```java
 @Test
 public void testMyEndpoint() {
-    // Using fluent API (REST-assured-like syntax)
-    APIResponse response = request()
+    // Using fluent API (REST-assured-like syntax) with authentication
+    APIResponse response = authenticatedRequest()
         .get("/my/endpoint")
         .then()
         .statusCode(200)
+        .extract()
+        .response();
+    
+    // For unauthenticated requests (testing unauthorized access, etc.)
+    APIResponse unauthenticatedResponse = unauthenticatedRequest()
+        .get("/my/endpoint")
+        .then()
+        .statusCode(401, 403) // Accept multiple status codes
         .extract()
         .response();
     
@@ -194,7 +202,7 @@ public void testCreateUser() {
     String jsonBody = renderTemplate("templates/user-create.json.vm", context);
     
     // Using fluent API
-    APIResponse response = request()
+    APIResponse response = authenticatedRequest()
         .post("/users", jsonBody)
         .then()
         .statusCode(201)
@@ -218,7 +226,7 @@ public void testCreateUser() {
         "age", 30,
         "phoneNumber", "555-1234");
     
-    APIResponse response = request()
+    APIResponse response = authenticatedRequest()
         .post("/users", jsonBody)
         .then()
         .statusCode(201)
@@ -293,7 +301,7 @@ public void testCreateUserWithDataFile() {
     );
     
     // Using fluent API
-    APIResponse response = request()
+    APIResponse response = authenticatedRequest()
         .post("/users", jsonBody)
         .then()
         .statusCode(201)
@@ -318,7 +326,7 @@ public void testCreateUserWithOverrides() {
         "age", 25              // Override age from JSON file
     );
     
-    APIResponse response = request()
+    APIResponse response = authenticatedRequest()
         .post("/users", jsonBody)
         .then()
         .statusCode(201)
@@ -337,7 +345,7 @@ public void testCreateUserFromCsv() {
     // Use as context for template
     String jsonBody = renderTemplate("templates/user-create.json.vm", userData);
     
-    APIResponse response = request()
+    APIResponse response = authenticatedRequest()
         .post("/users", jsonBody)
         .then()
         .statusCode(201)
@@ -496,25 +504,19 @@ public class SysGeocodeTests extends BaseApiTest {
     public void testUnauthorizedAccess() {
         log.info("Testing unauthorized access");
 
-        // Create a request without authentication
-        Playwright playwright = Playwright.create();
-        APIRequestContext context = playwright.request().newContext(
-            new com.microsoft.playwright.APIRequest.NewContextOptions()
-                .setBaseURL(getConfig().getApiBaseUrl())
-        );
-        
-        APIResponse response = context.get(
-            this.endpoint + "?addressLine1=Main St&state=OH&postalCode=44212&city=BRUNSWICK"
-        );
+        // Use unauthenticatedRequest() helper for requests without authentication
+        APIResponse response = unauthenticatedRequest()
+            .get(this.endpoint + "?addressLine1=Main St&state=OH&postalCode=44212&city=BRUNSWICK")
+            .then()
+            .statusCode(401, 403) // Accept either 401 or 403
+            .extract()
+            .response();
 
         log.info("Response status: {}", response.status());
         assertTrue(
             response.status() == 401 || response.status() == 403,
             "Expected 401 or 403 status code for unauthorized access"
         );
-        
-        context.dispose();
-        playwright.close();
     }
 
     @Test
@@ -523,7 +525,7 @@ public class SysGeocodeTests extends BaseApiTest {
     public void testAuthorizationFailsWithIncorrectScopes() {
         log.info("Testing authorization fails with incorrect OAuth scopes");
 
-        request()
+        authenticatedRequest()
             .get(this.endpoint + "?addressLine1=Main St&state=OH&postalCode=44212&city=BRUNSWICK")
             .then()
             .statusCode(403);
@@ -535,7 +537,7 @@ public class SysGeocodeTests extends BaseApiTest {
         log.info("Executing GET endpoint test");
 
         // Using fluent API
-        APIResponse response = request()
+        APIResponse response = authenticatedRequest()
             .get(this.endpoint + "?addressLine1=Main St&state=OH&postalCode=44212&city=BRUNSWICK")
             .then()
             .statusCode(200)
@@ -556,7 +558,7 @@ public class SysGeocodeTests extends BaseApiTest {
     public void testEndpointValidation() {
         log.info("Testing endpoint response validation");
 
-        request()
+        authenticatedRequest()
             .get("/dom-geocode-v1/actuator/health")
             .then()
             .statusCode(200)
