@@ -1,16 +1,19 @@
 # REST API Testing Framework
 
-A Java-based REST API testing framework using REST-assured, JUnit 5, Lombok, and Java 21. Designed for testing SpringBoot REST APIs with JWT authentication via PING Federate.
+A Java-based REST API testing framework using Playwright, JUnit 5, Lombok, and Java 21. Designed for testing SpringBoot REST APIs with JWT authentication via PING Federate.
 
 ## Features
 
 - **Java 21** - Latest LTS Java version
-- **REST-assured 5.4.0** - Powerful REST API testing library
+- **Playwright 1.40.0** - Modern API and browser testing library
 - **JUnit 5** - Modern testing framework
 - **Lombok** - Reduces boilerplate code
 - **JWT Authentication** - Automatic token retrieval from PING Federate
 - **Configurable** - Properties-based configuration
 - **Token Caching** - Efficient token management with caching
+- **Velocity Templates** - Generate JSON request bodies from templates
+- **CSV Data Loading** - Load test data from CSV files
+- **JSON Data Files** - Load test data from JSON files
 
 ## Prerequisites
 
@@ -26,7 +29,7 @@ rest-api-testing/
 ├── src/
 │   ├── main/
 │   │   ├── java/
-│   │   │   └── com/wfld/testing/api
+│   │   │   └── com/westfieldgrp/testing/api
 │   │   │       ├── auth/
 │   │   │       │   └── AuthenticationService.java
 │   │   │       └── config/
@@ -36,7 +39,7 @@ rest-api-testing/
 │   │       └── application.properties
 │   └── test/
 │       └── java/
-│           └── com/wfld/testing/api
+│           └── com/westfieldgrp/testing/api
 │               └── auth/
 │               |   └── AuthenticationServiceTest.java
 │               |   └── BypassTokenCacheTest.java
@@ -118,18 +121,21 @@ public class MyApiTest extends BaseApiTest {
 }
 ```
 
-2. Use `getAuthenticatedRequest()` to get a pre-authenticated request:
+2. Use `request()` for fluent API calls or direct methods:
 ```java
 @Test
 public void testMyEndpoint() {
-    Response response = getAuthenticatedRequest()
-        .when()
+    // Using fluent API (REST-assured-like syntax)
+    APIResponse response = request()
         .get("/my/endpoint")
         .then()
-        .spec(responseSpec)
         .statusCode(200)
         .extract()
         .response();
+    
+    // Or using direct helper methods
+    APIResponse response2 = get("/my/endpoint");
+    assertStatus(response2, 200);
 }
 ```
 
@@ -140,19 +146,14 @@ The framework automatically:
 2. Caches the token for 55 minutes (to avoid excessive token requests)
 3. Adds the token to all requests via `Authorization: Bearer <token>` header
 
-### Customizing Request/Response Specifications
+### Customizing API Request Context
 
 Override methods in your test class:
 
 ```java
 @Override
-protected void customizeRequestSpec(RequestSpecBuilder requestSpecBuilder) {
-    requestSpecBuilder.addHeader("X-Custom-Header", "value");
-}
-
-@Override
-protected void customizeResponseSpec(ResponseSpecBuilder responseSpecBuilder) {
-    responseSpecBuilder.expectStatusCode(200);
+protected void customizeApiRequestContext(APIRequest.NewContextOptions options) {
+    options.setExtraHTTPHeaders(Map.of("X-Custom-Header", "value"));
 }
 ```
 
@@ -192,15 +193,17 @@ public void testCreateUser() {
     
     String jsonBody = renderTemplate("templates/user-create.json.vm", context);
     
-    Response response = getAuthenticatedRequest()
-        .body(jsonBody)
-        .when()
-        .post("/users")
+    // Using fluent API
+    APIResponse response = request()
+        .post("/users", jsonBody)
         .then()
-        .spec(responseSpec)
         .statusCode(201)
         .extract()
         .response();
+    
+    // Or using direct helper
+    APIResponse response2 = post("/users", jsonBody);
+    assertStatus(response2, 201);
 }
 ```
 
@@ -215,12 +218,9 @@ public void testCreateUser() {
         "age", 30,
         "phoneNumber", "555-1234");
     
-    Response response = getAuthenticatedRequest()
-        .body(jsonBody)
-        .when()
-        .post("/users")
+    APIResponse response = request()
+        .post("/users", jsonBody)
         .then()
-        .spec(responseSpec)
         .statusCode(201)
         .extract()
         .response();
@@ -292,15 +292,17 @@ public void testCreateUserWithDataFile() {
         "templates/user-data.json"         // JSON data file
     );
     
-    Response response = getAuthenticatedRequest()
-        .body(jsonBody)
-        .when()
-        .post("/users")
+    // Using fluent API
+    APIResponse response = request()
+        .post("/users", jsonBody)
         .then()
-        .spec(responseSpec)
         .statusCode(201)
         .extract()
         .response();
+    
+    // Or using direct helper
+    APIResponse response2 = post("/users", jsonBody);
+    assertStatus(response2, 201);
 }
 ```
 
@@ -316,13 +318,43 @@ public void testCreateUserWithOverrides() {
         "age", 25              // Override age from JSON file
     );
     
-    Response response = getAuthenticatedRequest()
-        .body(jsonBody)
-        .when()
-        .post("/users")
+    APIResponse response = request()
+        .post("/users", jsonBody)
         .then()
+        .statusCode(201)
         .extract()
         .response();
+}
+```
+
+**Using CSV data files:**
+```java
+@Test
+public void testCreateUserFromCsv() {
+    // Load first row from CSV file
+    Map<String, String> userData = loadCsvAsMap("templates/user-data.csv");
+    
+    // Use as context for template
+    String jsonBody = renderTemplate("templates/user-create.json.vm", userData);
+    
+    APIResponse response = request()
+        .post("/users", jsonBody)
+        .then()
+        .statusCode(201)
+        .extract()
+        .response();
+}
+
+@Test
+public void testCreateMultipleUsersFromCsv() {
+    // Load all rows from CSV
+    List<Map<String, String>> allUsers = loadCsvAsList("templates/user-data.csv");
+    
+    for (Map<String, String> userData : allUsers) {
+        String jsonBody = renderTemplate("templates/user-create.json.vm", userData);
+        APIResponse response = post("/users", jsonBody);
+        assertStatus(response, 201);
+    }
 }
 ```
 
@@ -347,7 +379,7 @@ See `ExampleApiTest.java` for complete examples including:
 
 ## Dependencies
 
-- **REST-assured 5.4.0** - REST API testing
+- **Playwright 1.40.0** - API and browser testing
 - **JUnit 5.10.1** - Testing framework
 - **Lombok 1.18.30** - Code generation
 - **Jackson 2.16.1** - JSON processing
@@ -410,9 +442,9 @@ This is a proprietary testing framework for internal use.
 ## pom.xml needs
 ```
 <dependency>
-    <groupId>com.wfld.testing</groupId>
+    <groupId>com.westfieldgrp.testing</groupId>
     <artifactId>rest-api-testing</artifactId>
-    <version>1.0.0</version>
+    <version>3.0.0</version>
     <scope>test</scope>
 </dependency>
 <dependency>
@@ -422,23 +454,23 @@ This is a proprietary testing framework for internal use.
     <scope>test</scope>
 </dependency>
 <dependency>
-    <groupId>io.rest-assured</groupId>
-    <artifactId>rest-assured</artifactId>
-    <version>5.4.0</version>
-    <scope>test</scope>
+    <groupId>com.microsoft.playwright</groupId>
+    <artifactId>playwright</artifactId>
+    <version>1.40.0</version>
 </dependency>
 ```
 ## Example Usage for Java
 ```Java
-package com.wfld.testing.api;
+package com.westfieldgrp.testing.api;
 
-import com.wfld.testing.api.auth.OAuthScopes;
-import io.restassured.response.Response;
+import com.microsoft.playwright.APIResponse;
+import com.microsoft.playwright.APIRequestContext;
+import com.microsoft.playwright.APIResponse;
+import com.microsoft.playwright.Playwright;
+import com.westfieldgrp.testing.api.auth.OAuthScopes;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -464,33 +496,36 @@ public class SysGeocodeTests extends BaseApiTest {
     public void testUnauthorizedAccess() {
         log.info("Testing unauthorized access");
 
-        Response response = given()
-            .baseUri(getConfig().getApiBaseUrl())
-            .contentType(io.restassured.http.ContentType.JSON)
-            .when()
-            .get(this.endpoint + "?addressLine1=Main St&state=OH&postalCode=44212&city=BRUNSWICK")
-            .then()
-            .extract()
-            .response();
+        // Create a request without authentication
+        Playwright playwright = Playwright.create();
+        APIRequestContext context = playwright.request().newContext(
+            new com.microsoft.playwright.APIRequest.NewContextOptions()
+                .setBaseURL(getConfig().getApiBaseUrl())
+        );
+        
+        APIResponse response = context.get(
+            this.endpoint + "?addressLine1=Main St&state=OH&postalCode=44212&city=BRUNSWICK"
+        );
 
-        log.info("Response status: {}", response.getStatusCode());
+        log.info("Response status: {}", response.status());
         assertTrue(
-            response.getStatusCode() == 401 || response.getStatusCode() == 403,
+            response.status() == 401 || response.status() == 403,
             "Expected 401 or 403 status code for unauthorized access"
         );
+        
+        context.dispose();
+        playwright.close();
     }
 
     @Test
-    @DisplayName("Test Authorization Failes with incorrect OAuth scopes")
+    @DisplayName("Test Authorization Fails with incorrect OAuth scopes")
     @OAuthScopes({""})
     public void testAuthorizationFailsWithIncorrectScopes() {
         log.info("Testing authorization fails with incorrect OAuth scopes");
 
-        getAuthenticatedRequest()
-            .when()
+        request()
             .get(this.endpoint + "?addressLine1=Main St&state=OH&postalCode=44212&city=BRUNSWICK")
             .then()
-            .spec(responseSpec)
             .statusCode(403);
     }
 
@@ -499,22 +534,21 @@ public class SysGeocodeTests extends BaseApiTest {
     public void testGetEndpoint() {
         log.info("Executing GET endpoint test");
 
-        Response response = getAuthenticatedRequest()
-            .when()
+        // Using fluent API
+        APIResponse response = request()
             .get(this.endpoint + "?addressLine1=Main St&state=OH&postalCode=44212&city=BRUNSWICK")
             .then()
-            .spec(responseSpec)
             .statusCode(200)
-            .body("inCity", notNullValue())
+            .body("inCity", notNull())
             .body("inState", not(emptyString()))
             .extract()
             .response();
 
-        log.info("Response status: {}", response.getStatusCode());
-        log.info("Response body: {}", response.getBody().asString());
+        log.info("Response status: {}", response.status());
+        log.info("Response body: {}", response.text());
 
         assertNotNull(response);
-        assertEquals(200, response.getStatusCode());
+        assertEquals(200, response.status());
     }
 
     @Test
@@ -522,13 +556,11 @@ public class SysGeocodeTests extends BaseApiTest {
     public void testEndpointValidation() {
         log.info("Testing endpoint response validation");
 
-        getAuthenticatedRequest()
-            .when()
+        request()
             .get("/dom-geocode-v1/actuator/health")
             .then()
-            .spec(responseSpec)
             .statusCode(200)
-            .body("status", notNullValue());
+            .body("status", notNull());
     }
     
 }

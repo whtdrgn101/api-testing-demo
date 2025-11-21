@@ -1,4 +1,4 @@
-package com.wfld.testing.api.auth;
+package com.westfieldgrp.testing.api.auth;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

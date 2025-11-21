@@ -1,4 +1,4 @@
-package com.wfld.testing.api.auth;
+package com.westfieldgrp.testing.api.auth;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

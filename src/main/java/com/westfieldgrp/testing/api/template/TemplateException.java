@@ -1,4 +1,4 @@
-package com.wfld.testing.api.template;
+package com.westfieldgrp.testing.api.template;
 
 /**
  * Exception thrown when template processing fails

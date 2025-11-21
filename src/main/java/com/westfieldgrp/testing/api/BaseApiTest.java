@@ -1,32 +1,35 @@
-package com.wfld.testing.api;
+package com.westfieldgrp.testing.api;
 
-import com.wfld.testing.api.auth.AuthenticationService;
-import com.wfld.testing.api.auth.BypassTokenCache;
-import com.wfld.testing.api.auth.OAuthScopes;
-import com.wfld.testing.api.config.TestConfig;
-import com.wfld.testing.api.template.TemplateService;
-import io.restassured.RestAssured;
-import io.restassured.builder.RequestSpecBuilder;
-import io.restassured.builder.ResponseSpecBuilder;
-import io.restassured.http.ContentType;
-import io.restassured.specification.RequestSpecification;
-import io.restassured.specification.ResponseSpecification;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.microsoft.playwright.APIRequest;
+import com.microsoft.playwright.APIRequestContext;
+import com.microsoft.playwright.APIResponse;
+import com.microsoft.playwright.Playwright;
+import com.microsoft.playwright.options.RequestOptions;
+import com.westfieldgrp.testing.api.auth.AuthenticationService;
+import com.westfieldgrp.testing.api.auth.BypassTokenCache;
+import com.westfieldgrp.testing.api.auth.OAuthScopes;
+import com.westfieldgrp.testing.api.config.TestConfig;
+import com.westfieldgrp.testing.api.playwright.PlaywrightApiRequest;
+import com.westfieldgrp.testing.api.template.TemplateService;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
 
 import java.lang.reflect.Method;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.lessThan;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * Base test class that sets up REST-assured configuration and authentication
- * All test classes should extend this class
+ * Base test class that sets up Playwright API testing configuration and authentication.
+ * All test classes should extend this class.
  */
 @Slf4j
 @Getter
@@ -34,8 +37,9 @@ public abstract class BaseApiTest {
     protected static TestConfig config;
     protected static AuthenticationService authService;
     protected static TemplateService templateService;
-    protected RequestSpecification requestSpec;
-    protected ResponseSpecification responseSpec;
+    protected static Playwright playwright;
+    protected static ObjectMapper objectMapper = new ObjectMapper();
+    protected APIRequestContext apiRequestContext;
 
     @BeforeAll
     public static void setUpTestSuite() {
@@ -43,10 +47,7 @@ public abstract class BaseApiTest {
         config = TestConfig.getInstance();
         authService = AuthenticationService.getInstance();
         templateService = TemplateService.getInstance();
-
-        // Configure REST-assured defaults
-        RestAssured.baseURI = config.getApiBaseUrl();
-        RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
+        playwright = Playwright.create();
 
         log.info("Test suite initialized. API Base URL: {}", config.getApiBaseUrl());
     }
@@ -64,56 +65,132 @@ public abstract class BaseApiTest {
         // Get JWT token for authentication with scopes (with optional cache bypass)
         String accessToken = authService.getAccessToken(scopes, bypassCache);
 
-        // Build request specification with authentication
-        RequestSpecBuilder requestSpecBuilder = new RequestSpecBuilder()
-            .setBaseUri(config.getApiBaseUrl())
-            .setContentType(ContentType.JSON)
-            .addHeader("Authorization", "Bearer " + accessToken)
-            .setRelaxedHTTPSValidation(); // Use only in test environments
+        // Create API request context with base configuration
+        APIRequest.NewContextOptions contextOptions = new APIRequest.NewContextOptions()
+            .setBaseURL(config.getApiBaseUrl())
+            .setExtraHTTPHeaders(Map.of(
+                "Authorization", "Bearer " + accessToken,
+                "Content-Type", "application/json"
+            ))
+            .setTimeout(config.getTestTimeout())
+            .setIgnoreHTTPSErrors(true); // Use only in test environments
 
-        // Add any additional request specifications
-        customizeRequestSpec(requestSpecBuilder);
+        // Allow customization
+        customizeApiRequestContext(contextOptions);
 
-        requestSpec = requestSpecBuilder.build();
-
-        // Build response specification
-        ResponseSpecBuilder responseSpecBuilder = new ResponseSpecBuilder()
-            .expectResponseTime(lessThan(Duration.ofSeconds(30).toMillis()))
-            .expectContentType(ContentType.JSON);
-
-        // Add any additional response specifications
-        customizeResponseSpec(responseSpecBuilder);
-
-        responseSpec = responseSpecBuilder.build();
+        apiRequestContext = playwright.request().newContext(contextOptions);
 
         log.info("Test setup completed");
     }
 
+    @AfterEach
+    public void tearDownTest() {
+        if (apiRequestContext != null) {
+            apiRequestContext.dispose();
+        }
+    }
+
+    @AfterAll
+    public static void tearDownTestSuite() {
+        if (playwright != null) {
+            playwright.close();
+        }
+    }
+
     /**
-     * Override this method to customize request specifications for specific test classes
+     * Override this method to customize API request context for specific test classes
      *
-     * @param requestSpecBuilder the request spec builder to customize
+     * @param options the API request context options to customize
      */
-    protected void customizeRequestSpec(RequestSpecBuilder requestSpecBuilder) {
+    protected void customizeApiRequestContext(APIRequest.NewContextOptions options) {
         // Default implementation - override in subclasses if needed
     }
 
     /**
-     * Override this method to customize response specifications for specific test classes
+     * Helper method to get authenticated API request context
      *
-     * @param responseSpecBuilder the response spec builder to customize
+     * @return APIRequestContext with authentication headers
      */
-    protected void customizeResponseSpec(ResponseSpecBuilder responseSpecBuilder) {
-        // Default implementation - override in subclasses if needed
+    protected APIRequestContext getApiRequestContext() {
+        return apiRequestContext;
     }
 
     /**
-     * Helper method to get authenticated request specification
+     * Helper method to get a fluent API request builder (REST-assured-like syntax)
      *
-     * @return RequestSpecification with authentication headers
+     * @return PlaywrightApiRequest builder for fluent API calls
      */
-    protected RequestSpecification getAuthenticatedRequest() {
-        return RestAssured.given(requestSpec);
+    protected PlaywrightApiRequest request() {
+        return new PlaywrightApiRequest(apiRequestContext);
+    }
+
+    /**
+     * Helper method to make a GET request
+     */
+    protected APIResponse get(String path) {
+        return apiRequestContext.get(path);
+    }
+
+    /**
+     * Helper method to make a POST request
+     */
+    protected APIResponse post(String path, String body) {
+        return apiRequestContext.post(path, 
+            RequestOptions.create().setData(body));
+    }
+
+    /**
+     * Helper method to make a PUT request
+     */
+    protected APIResponse put(String path, String body) {
+        return apiRequestContext.put(path, 
+            RequestOptions.create().setData(body));
+    }
+
+    /**
+     * Helper method to make a DELETE request
+     */
+    protected APIResponse delete(String path) {
+        return apiRequestContext.delete(path);
+    }
+
+    /**
+     * Helper method to assert response status
+     */
+    protected void assertStatus(APIResponse response, int expectedStatus) {
+        assertEquals(expectedStatus, response.status(), 
+            String.format("Expected status %d but got %d. Response: %s", 
+                expectedStatus, response.status(), response.text()));
+    }
+
+    /**
+     * Helper method to parse JSON response
+     */
+    protected JsonNode parseJsonResponse(APIResponse response) {
+        try {
+            return objectMapper.readTree(response.text());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse JSON response: " + response.text(), e);
+        }
+    }
+
+    /**
+     * Helper method to assert JSON field value
+     */
+    protected void assertJsonField(APIResponse response, String fieldPath, String expectedValue) {
+        JsonNode json = parseJsonResponse(response);
+        String actualValue = json.at(fieldPath).asText();
+        assertEquals(expectedValue, actualValue, 
+            String.format("Field %s: expected '%s' but got '%s'", 
+                fieldPath, expectedValue, actualValue));
+    }
+
+    /**
+     * Helper method to get JSON field value
+     */
+    protected String getJsonField(APIResponse response, String fieldPath) {
+        JsonNode json = parseJsonResponse(response);
+        return json.at(fieldPath).asText();
     }
 
     /**
@@ -182,15 +259,6 @@ public abstract class BaseApiTest {
     }
 
     /**
-     * Get the TemplateService instance for advanced template operations.
-     *
-     * @return TemplateService instance
-     */
-    protected static TemplateService getTemplateService() {
-        return templateService;
-    }
-
-    /**
      * Loads a CSV file from the classpath and parses it into a Map for use as template context.
      * The first row is treated as headers (column names), and the specified data row
      * is parsed into a Map with header names as keys.
@@ -223,6 +291,15 @@ public abstract class BaseApiTest {
      */
     protected List<Map<String, String>> loadCsvAsList(String csvFilePath) {
         return templateService.loadCsvAsList(csvFilePath);
+    }
+
+    /**
+     * Get the TemplateService instance for advanced template operations.
+     *
+     * @return TemplateService instance
+     */
+    protected static TemplateService getTemplateService() {
+        return templateService;
     }
 
     /**
@@ -314,4 +391,3 @@ public abstract class BaseApiTest {
         return false;
     }
 }
-

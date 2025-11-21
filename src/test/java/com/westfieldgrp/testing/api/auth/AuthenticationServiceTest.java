@@ -1,6 +1,6 @@
-package com.wfld.testing.api.auth;
+package com.westfieldgrp.testing.api.auth;
 
-import com.wfld.testing.api.config.TestConfig;
+import com.westfieldgrp.testing.api.config.TestConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

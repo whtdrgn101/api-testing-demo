@@ -1,4 +1,4 @@
-package com.wfld.testing.api.playwright;
+package com.westfieldgrp.testing.api.playwright;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

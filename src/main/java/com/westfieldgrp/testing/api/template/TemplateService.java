@@ -1,4 +1,4 @@
-package com.wfld.testing.api.template;
+package com.westfieldgrp.testing.api.template;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

@@ -1,14 +1,17 @@
-package com.wfld.testing.api.auth;
+package com.westfieldgrp.testing.api.auth;
 
-import com.wfld.testing.api.config.TestConfig;
-import io.restassured.http.ContentType;
-import io.restassured.response.Response;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.microsoft.playwright.APIRequestContext;
+import com.microsoft.playwright.APIResponse;
+import com.microsoft.playwright.Playwright;
+import com.microsoft.playwright.options.RequestOptions;
+import com.westfieldgrp.testing.api.config.TestConfig;
 import lombok.extern.slf4j.Slf4j;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import static io.restassured.RestAssured.given;
 
 /**
  * Service for authenticating with PING Federate and retrieving JWT tokens.
@@ -18,6 +21,9 @@ import static io.restassured.RestAssured.given;
 public class AuthenticationService {
     private static AuthenticationService instance;
     private final TestConfig config;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private Playwright playwright;
+    private APIRequestContext apiRequestContext;
     
     // Token cache: key is scope combination (sorted), value is TokenCacheEntry
     private final Map<String, TokenCacheEntry> tokenCache = new ConcurrentHashMap<>();
@@ -39,6 +45,18 @@ public class AuthenticationService {
 
     private AuthenticationService() {
         this.config = TestConfig.getInstance();
+        initializePlaywright();
+    }
+
+    private void initializePlaywright() {
+        if (playwright == null) {
+            this.playwright = Playwright.create();
+            // Create a basic API request context for token requests
+            this.apiRequestContext = playwright.request().newContext(
+                new com.microsoft.playwright.APIRequest.NewContextOptions()
+                    .setIgnoreHTTPSErrors(true) // Use only in test environments
+            );
+        }
     }
 
     public static synchronized AuthenticationService getInstance() {
@@ -123,25 +141,36 @@ public class AuthenticationService {
             log.debug("Including scopes in token request: {}", scopeString);
         }
 
-        Response response = given()
-            .baseUri(baseUrl)
-            .contentType(ContentType.URLENC)
-            .formParams(formParams)
-            .when()
-            .post(tokenEndpoint)
-            .then()
-            .extract()
-            .response();
+        String tokenUrl = baseUrl + tokenEndpoint;
+        
+        APIResponse response = apiRequestContext.post(tokenUrl,
+            RequestOptions.create()
+                .setHeader("Content-Type", "application/x-www-form-urlencoded")
+                .setData(buildFormData(formParams)));
 
-        if (response.getStatusCode() != 200) {
+        if (response.status() != 200) {
             log.error("Failed to retrieve token. Status: {}, Body: {}", 
-                response.getStatusCode(), response.getBody().asString());
+                response.status(), response.text());
             throw new RuntimeException(
-                "Failed to retrieve JWT token from PING Federate. Status: " + response.getStatusCode()
+                "Failed to retrieve JWT token from PING Federate. Status: " + response.status()
             );
         }
 
-        String accessToken = response.jsonPath().getString("access_token");
+        // Parse JSON response
+        JsonNode jsonResponse;
+        try {
+            jsonResponse = objectMapper.readTree(response.text());
+        } catch (Exception e) {
+            log.error("Failed to parse token response as JSON: {}", response.text(), e);
+            throw new RuntimeException("Failed to parse PING Federate response", e);
+        }
+
+        JsonNode accessTokenNode = jsonResponse.get("access_token");
+        if (accessTokenNode == null || accessTokenNode.isNull()) {
+            throw new RuntimeException("Access token not found in PING Federate response");
+        }
+
+        String accessToken = accessTokenNode.asText();
         if (accessToken == null || accessToken.isEmpty()) {
             throw new RuntimeException("Access token not found in PING Federate response");
         }
@@ -201,6 +230,27 @@ public class AuthenticationService {
     @Deprecated
     public void invalidateToken() {
         invalidateToken(new String[0]);
+    }
+
+    /**
+     * Builds form-encoded data string from a map of parameters
+     *
+     * @param formParams map of form parameters
+     * @return URL-encoded form data string
+     */
+    private String buildFormData(Map<String, String> formParams) {
+        StringBuilder formData = new StringBuilder();
+        boolean first = true;
+        for (Map.Entry<String, String> entry : formParams.entrySet()) {
+            if (!first) {
+                formData.append("&");
+            }
+            formData.append(entry.getKey())
+                    .append("=")
+                    .append(java.net.URLEncoder.encode(entry.getValue(), java.nio.charset.StandardCharsets.UTF_8));
+            first = false;
+        }
+        return formData.toString();
     }
 }
 

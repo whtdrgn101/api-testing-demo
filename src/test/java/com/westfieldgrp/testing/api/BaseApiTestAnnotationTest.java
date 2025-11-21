@@ -1,7 +1,7 @@
-package com.wfld.testing.api;
+package com.westfieldgrp.testing.api;
 
-import com.wfld.testing.api.auth.BypassTokenCache;
-import com.wfld.testing.api.auth.OAuthScopes;
+import com.westfieldgrp.testing.api.auth.BypassTokenCache;
+import com.westfieldgrp.testing.api.auth.OAuthScopes;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
