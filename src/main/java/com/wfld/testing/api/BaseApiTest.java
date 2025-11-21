@@ -19,6 +19,7 @@ import org.junit.jupiter.api.TestInfo;
 
 import java.lang.reflect.Method;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.lessThan;
@@ -187,6 +188,41 @@ public abstract class BaseApiTest {
      */
     protected static TemplateService getTemplateService() {
         return templateService;
+    }
+
+    /**
+     * Loads a CSV file from the classpath and parses it into a Map for use as template context.
+     * The first row is treated as headers (column names), and the specified data row
+     * is parsed into a Map with header names as keys.
+     *
+     * @param csvFilePath path to the CSV file (e.g., "templates/user-data.csv")
+     * @param rowIndex    zero-based index of the data row to parse (0 = first data row after header)
+     * @return Map with column headers as keys and row values as values
+     */
+    protected Map<String, String> loadCsvAsMap(String csvFilePath, int rowIndex) {
+        return templateService.loadCsvAsMap(csvFilePath, rowIndex);
+    }
+
+    /**
+     * Loads a CSV file from the classpath and parses the first data row into a Map.
+     * Convenience method that uses the first data row (rowIndex = 0).
+     *
+     * @param csvFilePath path to the CSV file (e.g., "templates/user-data.csv")
+     * @return Map with column headers as keys and first row values as values
+     */
+    protected Map<String, String> loadCsvAsMap(String csvFilePath) {
+        return templateService.loadCsvAsMap(csvFilePath);
+    }
+
+    /**
+     * Loads a CSV file from the classpath and parses all data rows into a List of Maps.
+     * Useful for iterating over multiple test data rows.
+     *
+     * @param csvFilePath path to the CSV file (e.g., "templates/user-data.csv")
+     * @return List of Maps, where each Map represents a data row with headers as keys
+     */
+    protected List<Map<String, String>> loadCsvAsList(String csvFilePath) {
+        return templateService.loadCsvAsList(csvFilePath);
     }
 
     /**
