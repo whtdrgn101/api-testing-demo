@@ -22,33 +22,6 @@ A Java-based REST API testing framework using Playwright, JUnit 5, Lombok, and J
 - Access to PING Federate server
 - Client ID and Secret for PING Federate authentication
 
-## Project Structure
-
-```
-rest-api-testing/
-├── src/
-│   ├── main/
-│   │   ├── java/
-│   │   │   └── com/westfieldgrp/testing/api
-│   │   │       ├── auth/
-│   │   │       │   └── AuthenticationService.java
-│   │   │       └── config/
-│   │   │           └── TestConfig.java
-│   |   |       └── BaseApiTest.java
-│   │   └── resources/
-│   │       └── application.properties
-│   └── test/
-│       └── java/
-│           └── com/westfieldgrp/testing/api
-│               └── auth/
-│               |   └── AuthenticationServiceTest.java
-│               |   └── BypassTokenCacheTest.java
-│               |   └── OAuthScopesTest.java
-│               └── BaseApiTestAnnotationTests.java
-├── pom.xml
-└── README.md
-```
-
 ## Configuration
 
 ### 1. Environment Variables
